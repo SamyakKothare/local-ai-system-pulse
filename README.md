@@ -1,184 +1,284 @@
-# Local AI System Pulse
+<p align="center">
+  <img src="docs/assets/dashboard.png" alt="Local AI System Pulse dashboard" width="820" />
+</p>
 
-A polished, **100% local**, free & open-source health/monitoring dashboard for your laptop and your local AI infrastructure. Think of it as a small, self-contained JARVIS-style "system pulse" — it shows live CPU / RAM / disk / GPU metrics, the status of your local **OmniRoute** AI gateway, a live activity event log, and a transparent overall **health score**.
+<h1 align="center">LOCAL AI SYSTEM PULSE</h1>
 
-![local-only] 100% local · ![foss] FOSS · ![no-cloud] no cloud · ![no-api] no paid APIs
+<p align="center"><em>Your laptop. Your AI stack. One live pulse.</em></p>
+
+<p align="center">
+  A 100% local, real-time health & monitoring HUD for your system resources and your local AI infrastructure — live CPU, RAM, disk & NVIDIA GPU telemetry, your OmniRoute gateway's status, an activity event stream, and a transparent health score.
+</p>
+
+<p align="center">
+  <a href="https://samyakkothare.github.io/local-ai-system-pulse/"><strong>▶ Live Demo (static)</strong></a> ·
+  <a href="#installation"><strong>Run locally</strong></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.9%2B-3776AB" alt="Python 3.9+"/>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"/>
+  <img src="https://img.shields.io/badge/local-100%25-green" alt="100% Local"/>
+  <img src="https://img.shields.io/badge/cloud-none-orange" alt="No Cloud"/>
+  <img src="https://img.shields.io/badge/api-none-gray" alt="No Paid APIs"/>
+  <img src="https://img.shields.io/badge/telemetry-none-darkgreen" alt="No Telemetry"/>
+  <img src="https://img.shields.io/badge/dependencies-psutil_only-2ba4b9" alt="Dependencies: psutil only"/>
+</p>
+
+> **A real, working monitoring dashboard** — not a mock-up. The screenshot above is
+> rendered live from the backend on a Windows 11 machine.
 
 ---
 
-## Features
+## 📺 What it does
 
-- **System monitoring** — live CPU, RAM, disk, and (if present) GPU usage / temperature / VRAM / power via `nvidia-smi`.
-- **AI infrastructure status** — probes your local OmniRoute gateway at `http://127.0.0.1:20128` and shows reachability, HTTP health status, and response latency. (Safely — no API keys, no secrets.)
-- **Hermes indicator** — a labeled, conservative "is the local agent gateway reachable" indication inferred from OmniRoute reachability (never modifies Hermes).
-- **Live event log** — a small in-memory stream of lifecycle events (app started, OmniRoute checked, metrics refreshed, service down/recovered).
-- **Health score** — a 0–100 overall score computed from the available metrics. The criteria are transparent in the UI (see *Health score criteria* below).
-- **Futuristic UI** — dark, JARVIS-inspired, responsive, with lightweight status indicators and very little animation (deliberately no resource-heavy effects).
+A small self-contained, JARVIS-style "system pulse" for your machine. It shows at a glance:
+
+| | |
+|---|---|
+| 🖥️ **CPU, RAM, Disk** | live usage across all cores, real-time memory & the most-utilized volume |
+| 🎮 **NVIDIA GPU** | utilization, VRAM used/total, temperature, power draw (via `nvidia-smi`) |
+| 🧠 **OmniRoute gateway** | reachability, HTTP status, response latency, safe status/timestamp |
+| 🤖 **Hermes indicator** | conservative local agent-gateway liveness (never modifies Hermes) |
+| 📜 **Live event stream** | app started, metrics refreshed, service down / recovered |
+| 💚 **Health score** | transparent 0–100 overall score with fully documented criteria |
 
 ---
 
-## Architecture
+## ✨ Feature showcase
+
+### 🖥️ System telemetry
+Live CPU %, logical/physical core counts, RAM used/total/available, and disk usage of your most-utilized local volume — refreshed continuously in the background.
+
+### 🎮 GPU intelligence
+When an NVIDIA GPU + `nvidia-smi` are present, the dashboard adds utilization, VRAM, temperature and power. If absent it shows **"unavailable"** — it never fabricates a number.
+
+### 🧠 AI infrastructure
+Probes your local **OmniRoute** gateway at `127.0.0.1:20128` and surfaces reachability, HTTP status, and latency alongside a conservative Hermes liveness indicator.
+
+### 📡 Live monitoring
+A threaded poller keeps cached metrics fresh (system every ~2 s) while an in-memory event ring buffer logs lifecycle changes — service down, service recovered, metric refresh.
+
+### 💚 Health intelligence
+An explicit, deterministic 0–100 score from the available metrics, with the exact formula shown in the UI. Missing metrics simply don't count toward the mean.
+
+### 🔒 Privacy
+Binds to `127.0.0.1` only. No cloud, no telemetry, no API keys required by the dashboard, no public exposure. Your data never leaves the machine.
+
+---
+
+## 💡 Why this project?
+
+Most "system monitors" are heavyweight, cloud-bound, or shove raw OS access into the browser. This one takes the opposite stance:
+
+- **100% local, no cloud** — nothing is uploaded, ever.
+- **No paid APIs, no keys** — the dashboard needs no credentials to run.
+- **Minimal dependencies** — just `psutil`; the rest is the Python standard library.
+- **The backend owns OS access** — the browser only ever talks to a small local JSON API. It never touches the operating system directly.
+- **Graceful degradation over fake values** — if a sensor is missing (no NVIDIA GPU, OmniRoute down), the panel shows *unavailable / offline* honestly, instead of inventing a reading.
+
+That last point is the whole design philosophy: **an honest, minimal, local tool that degrades gracefully.**
+
+---
+
+## 🏗️ Architecture
 
 ```
-Browser (frontend/ static files)
-        │  HTTP (127.0.0.1:8712)
-        ▼
-Python backend (backend/server.py)  ─── stdlib http.server ─── presents JSON API only
-        │
-        ├── psutil        → CPU / RAM / disk
-        ├── nvidia-smi    → GPU (subprocess, graceful if absent)
-        └── urllib        → OmniRoute HTTP health probe (127.0.0.1:20128)
+        ┌──────────────────────────────────────────────┐
+        │  Browser  (frontend/ static HTML/CSS/JS)      │
+        │  polls the JSON API every ~2s, renders the HUD │
+        └───────────────────────┬──────────────────────┘
+                                │  HTTP over 127.0.0.1:8712
+                                ▼
+        ┌──────────────────────────────────────────────┐
+        │  Python backend  (backend/server.py)          │
+        │  stdlib http.server + ThreadingHTTPServer     │
+        │  exposes JSON API ONLY; all OS access here    │
+        └───┬──────────────┬──────────────┬────────────┘
+            │              │              │
+     ┌──────▼─────┐  ┌─────▼─────┐  ┌─────▼───────────────────┐
+     │ psutil     │  │ nvidia-smi│  │ OmniRoute gateway probe │
+     │ CPU/RAM/Disk│  │ GPU       │  │ http://127.0.0.1:20128  │
+     └────────────┘  └───────────┘  └─────────────────────────┘
 ```
 
-- **Backend** (`backend/server.py`): a Python standard-library HTTP server (`http.server` + `ThreadingHTTPServer`). It exposes a small JSON API and does **all** OS/GPU/gateway access server-side. The browser never touches the OS directly.
-- **Frontend** (`frontend/`): static HTML/CSS/JS served by the same backend. It polls the JSON API on a 2-second interval and renders the HUD. Pure browser JS, no build step, no framework, no dependencies.
-- **Pollers**: a background thread refreshes cached system metrics every 2s and probes OmniRoute every 5s. Endpoints read the cached values, so the API is fast and consistent.
-- **Bind**: the server binds to `127.0.0.1` only — it is never exposed to the public internet.
+- **Backend** (`backend/server.py`): a Python **standard-library** HTTP server that does all OS/GPU/gateway access server-side and presents a small JSON API.
+- **Frontend** (`frontend/`): static HTML/CSS/JS served by the same backend. Pure browser JS — no build step, no framework, no dependencies.
+- **Pollers**: a background thread refreshes cached system metrics every ~2 s; endpoints read the cache for fast, consistent responses.
+- **Bind**: `127.0.0.1` only — never exposed to the public internet.
 
-### Why stdlib + psutil?
-
-Only `psutil` (already installed on this machine) is required. Everything else — HTTP server, JSON, threading, subprocess, urllib — comes from the Python standard library. This keeps the project tiny, has essentially no install surface, and needs no cloud or paid service.
+**The browser never accesses the operating system.** All telemetry is gathered by the backend and delivered over the local API.
 
 ---
 
-## Requirements
+## 🧰 Tech stack
 
-- **OS:** Windows (developed/tested on Windows 11; should work on macOS/Linux with minor tweaks).
-- **Python 3.9+** (developed on 3.11).
-- **`psutil`** for system metrics — install via `pip install -r requirements.txt`.
-- **Optional:** an NVIDIA GPU + `nvidia-smi` in PATH to show GPU metrics. If absent, the GPU panel shows "unavailable" gracefully rather than faking a value.
-- **Optional (for AI panel):** a local OmniRoute gateway at `http://127.0.0.1:20128`. If not running, it shows OFFLINE — the dashboard still works.
+| Layer | Technology |
+|---|---|
+| Backend | **Python** (stdlib `http.server` + `ThreadingHTTPServer`) |
+| System metrics | **psutil** |
+| GPU metrics | **nvidia-smi** (subprocess, optional) |
+| Gateway probe | **urllib** → OmniRoute `http://127.0.0.1:20128` |
+| Frontend | **HTML · CSS · JavaScript** (no framework, no build step) |
+| Integration | **OmniRoute** local AI gateway |
+
+That's the complete stack — deliberately small.
 
 ---
 
-## Installation
+## ⚙️ Installation
 
+### Windows
 ```bash
 cd "D:/HERMES files/Projects/LocalAISystemPulse"
 python -m venv .venv
-.venv\Scripts\activate          # Windows
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
+*(If `psutil` is already installed globally, the venv is optional.)*
 
-(If `psutil` is already installed globally you can skip the venv and install.)
+### Linux / macOS
+The backend is deliberately platform-light and should run on POSIX systems with minor tweaks (e.g. `source .venv/bin/activate`). GPU metrics require an NVIDIA GPU + `nvidia-smi`.
 
----
-
-## How to run it
-
+### Run
 ```bash
 python backend/server.py
 ```
-
 Then open your browser to:
 
 ```
 http://127.0.0.1:8712
 ```
 
-You should see the HUD immediately; metrics refresh every ~2 seconds.
+You'll see the HUD immediately; metrics refresh every ~2 seconds.
 
 ---
 
-## Available endpoints
+## 📊 What you get
 
-All return JSON. The browser hits these over `127.0.0.1:8712`.
+Once running, the dashboard monitors:
+
+```text
+CPU      ████████░░  42%   (12 logical / 6 physical cores)
+RAM      ██████████░░░░░  61%   (9.5 / 15.7 GB)
+Disk     ███████████████░░  79%   (C:\ NTFS)
+GPU      NVIDIA GeForce RTX 2050 · 0% util · 58°C · 11.6 W · 149/4096 MB VRAM
+OmniRoute  ONLINE · HTTP 200 · 31 ms
+Health   ████████████████░  86  EXCELLENT
+```
+
+*Real values shown here were captured from the running dashboard; your numbers will differ by machine and load.*
+
+---
+
+## 🔌 API
+
+All endpoints return JSON. The browser hits these over `127.0.0.1:8712`.
 
 | Endpoint | Description |
 |---|---|
-| `GET /` | The dashboard UI (index.html) |
+| `GET /` | The dashboard UI (`index.html`) |
 | `GET /api/system` | CPU, memory, disk, GPU, platform, hostname |
 | `GET /api/omniroute` | OmniRoute reachability, HTTP status, latency, safe info |
-| `GET /api/hermes` | Hermes reachability indicator (conservative heuristic) |
+| `GET /api/hermes` | Hermes liveness indicator (conservative heuristic) |
 | `GET /api/events` | Recent activity events |
-| `GET /api/health-score` | Overall 0–100 health score + component breakdown + criteria |
+| `GET /api/health-score` | Overall 0–100 score + component breakdown + criteria |
 | `GET /api/summary` | Combined system + omniroute + hermes + score + events in one call |
 
 ---
 
-## How system metrics are collected
+## 💚 Health score
 
-- **CPU:** `psutil.cpu_percent(interval=0.2)` averaged across all cores; core counts via `psutil.cpu_count()`.
-- **RAM:** `psutil.virtual_memory()` → percent, used/total/available in GB.
-- **Disk:** `psutil.disk_usage()` on the first/secondary partitions; shows the most-utilized local volume.
-- **GPU:** `nvidia-smi --query-gpu=...,--format=csv` subprocess → name, utilization %, VRAM used/total (MB), temperature (°C), power draw (W). Parsed defensively.
-- **Network/connectivity:** represented by the OmniRoute gateway reachability probe (no raw bandwidth metering, which is flaky cross-platform; see *Limitations*).
-- Every metric collector is wrapped in try/except so any single failure (e.g. no GPU) degrades to `null`/"unavailable" rather than crashing or returning a fake number.
-
----
-
-## OmniRoute integration
-
-The backend probes `http://127.0.0.1:20128/api/health` with a short timeout:
-
-- **Reachable** → shows ONLINE, HTTP status, latency (ms), and any safe `status`/`timestamp` fields.
-- **Unreachable** → shows OFFLINE (the probe never reads or logs secret material; only summary fields).
-
-The **Hermes panel** is a conservative local indication: when OmniRoute is reachable, Hermes is inferred online (they run together locally); otherwise it shows **UNKNOWN**, never a false "online".
-
----
-
-## Health score criteria
-
-The score is the **mean of the component scores** that are actually available (missing metrics simply don't count):
+The score is the **mean of the component scores that are actually available** — missing metrics simply don't count toward the mean.
 
 | Component | Rule |
 |---|---|
-| **CPU** | ≤80% → `100 − 0.25·usage` (so 0% = 100, 80% = 80); >80% → `max(0, 80 − (usage−80)·2)` |
+| **CPU** | ≤80% → `100 − 0.25·usage` (0% = 100, 80% = 80); >80% → `max(0, 80 − (usage−80)·2)` |
 | **RAM** | `max(0, 100 − usage%·0.8)` |
 | **Disk** | `max(0, 100 − usage%·0.4)` |
 | **GPU util** | `50 + 0.5·(100 − utilization)` |
 | **GPU temp** | `max(0, 100 − max(0, temp−60)·2)` |
 | **OmniRoute** | ±20 pts via reachability (100 when reachable, 0 when not) |
 
-**Verdict:** ≥85 = EXCELLENT, ≥70 = GOOD, ≥50 = FAIR, else POOR. The exact formula string is also shown in the dashboard UI (`criteria`).
+**Verdict:** ≥85 = *EXCELLENT*, ≥70 = *GOOD*, ≥50 = *FAIR*, else *POOR*. The exact formula string is also shown in the dashboard UI (`criteria`).
 
 ---
 
-## Known limitations
+## 🧠 OmniRoute integration
 
-- **GPU metrics** require an NVIDIA GPU + `nvidia-smi`; AMD/Intel iGPUs are not detected (shown as N/A, never faked).
-- **No per-interface raw network bandwidth metering** (cross-platform inconsistency). Network state is reflected through the OmniRoute reachability probe.
+The backend probes `http://127.0.0.1:20128/api/health` with a short timeout and reports:
+
+- **Reachable** → ONLINE, HTTP status, latency (ms), and any safe `status` / `timestamp` fields.
+- **Unreachable** → OFFLINE, clearly labeled — and the dashboard keeps working.
+
+**No secret or API-key material is ever exposed.** Only summary fields (`status`, `timestamp`) are parsed and shown.
+
+The **Hermes panel** is a conservative inference: when OmniRoute is reachable, Hermes (which runs locally alongside it) is labeled *online*; otherwise *unknown* — never a false "online."
+
+---
+
+## 🔒 Privacy & security
+
+- **Loopback only** — the server binds to `127.0.0.1:8712`; it is never exposed to the public internet.
+- **No cloud telemetry** — nothing leaves the machine. Ever.
+- **No API keys required** — the dashboard runs with zero credentials.
+- **Safe OmniRoute fields** — only `status` / `timestamp` summary fields are read.
+- **No authentication** — unnecessary because it's loopback-only (single-user local tool).
+
+---
+
+## 🌐 GitHub Pages
+
+> **GitHub Pages hosts a static showcase only.** It cannot run the Python backend that reads real system/GPU metrics and probes the local OmniRoute gateway.
+
+- **Live demo URL:** https://samyakkothare.github.io/local-ai-system-pulse/
+- The Pages demo ships the same frontend styling with **placeholder** values and an explicit banner — it does **not** fake live system data.
+- **The real, functional dashboard runs locally:**
+  ```bash
+  python backend/server.py   # then open http://127.0.0.1:8712
+  ```
+
+GitHub Pages = **UI showcase**. Local Python backend = **actual live monitoring**.
+
+---
+
+## ⚠️ Known limitations
+
+- **GPU metrics** require an NVIDIA GPU + `nvidia-smi` in PATH; AMD/Intel iGPUs are not detected (shown as N/A, never faked).
+- **No per-interface raw network bandwidth metering** (cross-platform inconsistency); network state is reflected through the OmniRoute reachability probe.
 - **Hermes status** is an *inference* (OmniRoute reachable ⇒ Hermes likely live), not a direct IPC check — read-only, no Hermes modification.
-- **In-memory event log** — events are lost on restart (by design; no persistence for a monitoring panel). Ring buffer capped at 200.
-- **Single-user local tool** — no authentication (only bound to loopback, so that's acceptable locally).
+- **In-memory event log** — events are lost on restart (by design; ring buffer capped at 200).
+- **Single-user local tool** — no authentication (acceptable because it is loopback-only).
 - **OmniRoute info** is intentionally limited to safe summary fields to avoid exposing secrets.
 
 ---
 
-## Future improvements
+## 🗺️ Roadmap
 
-- Persist event history to a small SQLite file so the log survives restarts.
-- Add historical sparkline charts for CPU/RAM/GPU over time (local, Canvas).
-- Add per-interface bandwidth metering where the OS exposes it cleanly.
-- Optional local LLM integration to summarize health anomalies (keep it local/Ollama, no cloud).
-- WebSocket push instead of 2s polling (lower overhead, smoother updates).
+- [ ] Persist event history to a small **SQLite** file so the log survives restarts
+- [ ] Add historical **sparkline charts** for CPU / RAM / GPU over time (local, Canvas)
+- [ ] Add **per-interface bandwidth** metering where the OS exposes it cleanly
+- [ ] Optional **local LLM** (Ollama) integration to summarize health anomalies — kept local, no cloud
+- [ ] **WebSocket** push instead of 2 s polling (lower overhead, smoother updates)
 
----
-
-## GitHub Pages deployment (static demo)
-
-> **Architectural note:** This project is designed as a **local** tool. The live
-> HUD depends on a Python backend (`backend/server.py`) that reads real system/GPU
-> metrics via `psutil`/`nvidia-smi` and probes the local OmniRoute gateway. GitHub
-> Pages can only serve **static** files and cannot run a Python process, so the
-> *live* dashboard cannot be hosted on Pages.
-
-To make the repo presentable on GitHub Pages without faking live data, a
-**static demo** page is published to the `gh-pages` branch. It ships the same
-frontend styling (`style.css`) and renders the HUD with **placeholder** values and
-a clear banner stating that live metrics require the local backend. No telemetry,
-no fake system readings — it is explicitly a UI demo.
-
-Run the real thing locally:
-
-```bash
-python backend/server.py
-# open http://127.0.0.1:8712
-```
+*All roadmap items are planned; none are yet implemented.*
 
 ---
 
-## License
+## 🤝 Project status & experimenting
 
-MIT — free to use, modify, and redistribute. No cloud, no tracking, no telemetry.
+Local AI System Pulse is a small personal / open-source experiment. It is intentionally minimal and dependency-light so it's easy to read, fork, and run.
+
+To try it: install `psutil`, run `python backend/server.py`, and open `http://127.0.0.1:8712`. Submit a pull request or open an issue on GitHub if you build on it.
+
+---
+
+## 📄 License
+
+**MIT** — free to use, modify, and redistribute. No cloud, no tracking, no telemetry.
+
+---
+
+<p align="center">
+  Built locally · Runs locally · Your telemetry stays local.
+</p>
