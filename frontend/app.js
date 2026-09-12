@@ -182,3 +182,116 @@ clock();
 setInterval(clock, 1000);
 pollAll();
 setInterval(pollAll, 2000);
+
+/* ============================================================
+   VISUAL EFFECTS (additive, frontend-only)
+   - Animated beams background (canvas)
+   - Border-trail stagger across cards
+   Lightweight: reduced beams, pauses when hidden, respects
+   prefers-reduced-motion. Does not touch any monitoring logic.
+   ============================================================ */
+
+(function () {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  /* ---------- Border-trail stagger ---------- */
+  // Assign each card a subtly different start angle via CSS var.
+  const trailCards = document.querySelectorAll(".card");
+  trailCards.forEach((c, i) => {
+    c.style.setProperty("--trail-delay", ((i * 0.62) % 1).toFixed(2) + "s");
+  });
+
+  /* ---------- Animated beams background ---------- */
+  const canvas = document.getElementById("beams-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, dpr = 1, raf = 0, running = false;
+
+  // Beam definition
+  const BEAMS = 6;
+  const PALETTE = [
+    [0, 229, 255],  // cyan
+    [90, 120, 255], // blue
+    [150, 80, 255], // purple
+  ];
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5); // cap DPR for perf
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    const w = W, h = H;
+    for (let i = 0; i < BEAMS; i++) {
+      const col = PALETTE[i % PALETTE.length];
+      // slowly drifting vertical beams
+      const xBase = (i + 0.5) * (w / BEAMS);
+      const sway = Math.sin(t * 0.0002 + i * 1.3) * w * 0.06;
+      const x = xBase + sway;
+      const bw = Math.min(w * 0.16, 220);  // beam width, bounded for perf
+      const rise = ((t * 0.00003) + i * 0.33) % 1;
+      const yTop = -h * 0.2 + rise * (h * 1.4);
+
+      // vertical gradient beam
+      const grad = ctx.createLinearGradient(0, yTop - h * 0.5, 0, yTop + h * 0.5);
+      grad.addColorStop(0, "rgba(" + col.join(",") + ",0)");
+      grad.addColorStop(0.5, "rgba(" + col.join(",") + ",0.10)");
+      grad.addColorStop(1, "rgba(" + col.join(",") + ",0)");
+
+      ctx.save();
+      ctx.translate(x, yTop);
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = grad;
+      ctx.scale(1, 1.6);
+      ctx.fillRect(-bw / 2, -h * 0.5, bw, h);
+      ctx.restore();
+    }
+
+    // soft top ambient glow
+    const glow = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+    glow.addColorStop(0, "rgba(0,229,255,0.04)");
+    glow.addColorStop(1, "rgba(0,229,255,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h * 0.5);
+  }
+
+  function loop(t) {
+    if (!running) return;
+    draw(t);
+    raf = requestAnimationFrame(loop);
+  }
+
+  function start() {
+    if (reduced.matches) return;           // respect reduced motion
+    if (running) return;
+    running = true;
+    raf = requestAnimationFrame(loop);
+  }
+
+  function stop() {
+    running = false;
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+
+  function onVisibility() {
+    if (document.hidden) stop();
+    else start();
+  }
+
+  function onLayout() {
+    resize();
+  }
+
+  resize();
+  window.addEventListener("resize", onLayout);
+  document.addEventListener("visibilitychange", onVisibility);
+
+  reduced.addEventListener("change", (e) => { if (e.matches) stop(); else start(); });
+
+  start();
+})();

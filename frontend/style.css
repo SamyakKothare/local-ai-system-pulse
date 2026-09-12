@@ -14,6 +14,12 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Animated beams background (canvas) */
+#beams-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  width: 100vw; height: 100vh;
+}
+
 body {
   background: radial-gradient(circle at 20% -10%, #0a1526 0%, var(--bg) 55%);
   color: var(--text);
@@ -64,14 +70,44 @@ h1 .accent { color: var(--cyan); }
 .glob-status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amber); }
 
 /* Cards */
+@keyframes border-track { to { --trail-a: 360deg; } }
+@property --trail-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .card {
+  position: relative;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
   padding: 16px 18px;
+  overflow: hidden;
   backdrop-filter: blur(6px);
   box-shadow: 0 0 18px rgba(0,229,255,0.05);
+  --trail-delay: 0s;
 }
+/* Animated border trail — a luminous point traveling the card perimeter */
+.card::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;                      /* ring thickness */
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--trail-a),
+    transparent 0deg,
+    rgba(0,229,255,0) 40deg,
+    rgba(0,229,255,0.65) 95deg,
+    rgba(0,255,157,0.25) 150deg,
+    transparent 215deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  animation: border-track 6s linear infinite;
+  animation-delay: var(--trail-delay);
+  opacity: 0.55;
+}
+/* Keep card content above the trail */
+.card > * { position: relative; z-index: 1; }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .card-title { font-size: 11px; letter-spacing: 3px; color: var(--text-dim); font-weight: 600; }
 .live-tag {
@@ -133,3 +169,10 @@ h1 .accent { color: var(--cyan); }
 /* Responsive */
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } h1 { font-size: 15px; } .clock { font-size: 17px; } }
+
+/* Reduced motion: freeze beams + border trail */
+@media (prefers-reduced-motion: reduce) {
+  #beams-canvas { display: none; }
+  .card::before { animation: none; opacity: 0.2; }
+  .core-ring { animation: none; }
+}
