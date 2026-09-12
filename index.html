@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local AI System Pulse — Static Demo</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .demo-banner {
+      background: rgba(255, 194, 51, 0.08);
+      border: 1px solid rgba(255, 194, 51, 0.35);
+      color: #ffc233;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin: 0 0 16px 0;
+      font-size: 11px;
+      letter-spacing: 1px;
+      line-height: 1.6;
+    }
+    .demo-banner b { color: #ffe9a8; }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+  <div class="hud-container">
+    <header class="hud-header">
+      <div class="brand">
+        <div class="brand-core"><div class="core-ring"><span class="core-dot"></span></div></div>
+        <div>
+          <h1>LOCAL AI <span class="accent">SYSTEM PULSE</span></h1>
+          <p class="subtitle">Static demo — no live backend</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="glob-status" id="glob-status">
+          <span class="dot" style="background:#ffc233"></span><span>STATIC DEMO</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="demo-banner">
+      <b>GitHub Pages static preview.</b> This page renders the HUD layout and UI only.
+      Live system/GPU/OmniRoute metrics require the Python backend — run
+      <code>python backend/server.py</code> locally and open
+      <code>http://127.0.0.1:8712</code>. On this static host the meters show
+      placeholder values; no telemetry is collected here.
+    </div>
+
+    <section class="card health-banner">
+      <div class="health-score-wrap">
+        <div class="score-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"/>
+            <circle class="ring-fg" id="score-arc" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="score-num" id="score-num">--</div>
+        </div>
+        <div>
+          <div class="verdict" id="verdict">STATIC</div>
+          <p class="score-sub">LOCAL SYSTEM HEALTH <small>(demo)</small></p>
+        </div>
+      </div>
+    </section>
+
+    <main class="grid">
+      <section class="card"><div class="card-head"><span class="card-title">CPU</span></div><div class="metric-big">DEMO</div><div class="bar"><div class="bar-fill" style="width:40%"></div></div><div class="metric-sub">Backend required</div></section>
+      <section class="card"><div class="card-head"><span class="card-title">MEMORY</span></div><div class="metric-big">DEMO</div><div class="bar"><div class="bar-fill" style="width:55%"></div></div><div class="metric-sub">Backend required</div></section>
+      <section class="card"><div class="card-head"><span class="card-title">DISK</span></div><div class="metric-big">DEMO</div><div class="bar"><div class="bar-fill" style="width:70%"></div></div><div class="metric-sub">Backend required</div></section>
+      <section class="card"><div class="card-head"><span class="card-title">GPU</span></div><div class="metric-big">DEMO</div><div class="bar"><div class="bar-fill" style="width:30%"></div></div><div class="metric-sub">Backend required</div></section>
+    </main>
+
+    <footer class="hud-footer">
+      <span>LOCAL AI SYSTEM PULSE</span>
+      <span>STATIC DEMO · GITHUB PAGES</span>
+      <span>100% LOCAL · FOSS · NO CLOUD</span>
+    </footer>
+  </div>
+  <script>function tick(){var n=new Date(),p=s=>String(s).padStart(2,"0");document.getElementById("clock").textContent=p(n.getHours())+":"+p(n.getMinutes())+":"+p(n.getSeconds())}tick();setInterval(tick,1000);</script>
+</body>
+</html>
