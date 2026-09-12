@@ -1,0 +1,4 @@
+# Required Python packages
+# Only `psutil` is needed for system metrics; everything else is stdlib.
+# Install:  pip install -r requirements.txt
+psutil>=5.9.0

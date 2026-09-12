@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Local AI System Pulse</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="scanlines"></div>
+  <div class="hud-container">
+    <header class="hud-header">
+      <div class="brand">
+        <div class="brand-core">
+          <div class="core-ring">
+            <span class="core-dot"></span>
+          </div>
+        </div>
+        <div>
+          <h1>LOCAL AI <span class="accent">SYSTEM PULSE</span></h1>
+          <p class="subtitle">Autonomous infrastructure &amp; hardware monitor</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="glob-status" id="glob-status">
+          <span class="dot"></span><span>INITIALIZING</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Overall health banner -->
+    <section class="health-banner card" id="health-banner">
+      <div class="health-score-wrap">
+        <div class="score-ring" id="score-ring">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="52"/>
+            <circle class="ring-fg" id="score-arc" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="score-num" id="score-num">--</div>
+        </div>
+        <div>
+          <div class="verdict" id="verdict">—</div>
+          <p class="score-sub">LOCAL SYSTEM HEALTH</p>
+          <p class="criteria" id="criteria">Awaiting metrics…</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- System cards -->
+    <main class="grid">
+      <!-- CPU -->
+      <section class="card">
+        <div class="card-head"><span class="card-title">CPU</span><span class="live-tag">LIVE</span></div>
+        <div class="metric-big" id="cpu-val">--%</div>
+        <div class="bar"><div class="bar-fill" id="cpu-bar"></div></div>
+        <div class="metric-sub" id="cpu-cores">— cores</div>
+      </section>
+
+      <!-- RAM -->
+      <section class="card">
+        <div class="card-head"><span class="card-title">MEMORY</span><span class="live-tag">LIVE</span></div>
+        <div class="metric-big" id="mem-val">--%</div>
+        <div class="bar"><div class="bar-fill" id="mem-bar"></div></div>
+        <div class="metric-sub" id="mem-detail">— / — GB</div>
+      </section>
+
+      <!-- Disk -->
+      <section class="card">
+        <div class="card-head"><span class="card-title">DISK</span><span class="live-tag">LIVE</span></div>
+        <div class="metric-big" id="disk-val">--%</div>
+        <div class="bar"><div class="bar-fill" id="disk-bar"></div></div>
+        <div class="metric-sub" id="disk-detail">— / — GB</div>
+      </section>
+
+      <!-- GPU -->
+      <section class="card">
+        <div class="card-head"><span class="card-title">GPU</span><span class="live-tag">LIVE</span></div>
+        <div class="metric-big" id="gpu-val">--</div>
+        <div class="bar"><div class="bar-fill" id="gpu-bar"></div></div>
+        <div class="metric-sub" id="gpu-detail">—</div>
+        <div class="metric-sub2" id="gpu-temp">— | — GB VRAM</div>
+      </section>
+    </main>
+
+    <!-- Infrastructure row -->
+    <div class="grid-2">
+      <!-- OmniRoute -->
+      <section class="card infra-card" id="omniroute-card">
+        <div class="card-head">
+          <span class="card-title"><span class="status-dot" id="omni-dot"></span> OmniRoute Gateway</span>
+          <span class="live-tag">AI</span>
+        </div>
+        <div class="infra-status big" id="omni-status">Scanning…</div>
+        <div class="infra-detail" id="omni-detail">http://127.0.0.1:20128</div>
+        <div class="infra-meta" id="omni-meta">—</div>
+      </section>
+
+      <!-- Hermes -->
+      <section class="card infra-card" id="hermes-card">
+        <div class="card-head">
+          <span class="card-title"><span class="status-dot" id="hermes-dot"></span> Hermes Agent</span>
+          <span class="live-tag">CORE</span>
+        </div>
+        <div class="infra-status big" id="hermes-status">Detecting…</div>
+        <div class="infra-detail" id="hermes-detail">Local agent core</div>
+        <div class="infra-meta" id="hermes-meta">—</div>
+      </section>
+    </div>
+
+    <!-- Event log -->
+    <section class="card logs-card">
+      <div class="card-head"><span class="card-title">ACTIVITY LOG</span><span class="live-tag">STREAM</span></div>
+      <div id="log-body" class="log-body"><div class="log-empty">Waiting for events…</div></div>
+    </section>
+
+    <footer class="hud-footer">
+      <span>LOCAL AI SYSTEM PULSE</span>
+      <span id="footer-host">—</span>
+      <span>100% LOCAL · FOSS · NO CLOUD</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
